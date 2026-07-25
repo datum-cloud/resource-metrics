@@ -135,3 +135,38 @@ func TestResourceMetricsOperator_String_NilReceiver(t *testing.T) {
 		t.Errorf("(*ResourceMetricsOperator)(nil).String() = %q, want %q", got, "<nil>")
 	}
 }
+
+// TestSetDefaults_OtelConfig_Endpoint verifies endpoint resolution precedence:
+// an explicit config value wins; otherwise OTEL_EXPORTER_OTLP_ENDPOINT is
+// honored; otherwise the built-in default applies.
+func TestSetDefaults_OtelConfig_Endpoint(t *testing.T) {
+	const builtin = "otel-collector-collector.otel-collector-system:4317"
+	const envEP = "otel-collector-collector.telemetry-system:4317"
+
+	t.Run("built-in default when unset and no env", func(t *testing.T) {
+		t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+		obj := &OtelConfig{}
+		SetDefaults_OtelConfig(obj)
+		if obj.Endpoint != builtin {
+			t.Errorf("Endpoint = %q, want built-in default %q", obj.Endpoint, builtin)
+		}
+	})
+
+	t.Run("env var honored when config unset", func(t *testing.T) {
+		t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", envEP)
+		obj := &OtelConfig{}
+		SetDefaults_OtelConfig(obj)
+		if obj.Endpoint != envEP {
+			t.Errorf("Endpoint = %q, want env %q", obj.Endpoint, envEP)
+		}
+	})
+
+	t.Run("explicit config wins over env", func(t *testing.T) {
+		t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", envEP)
+		obj := &OtelConfig{Endpoint: "explicit:4317"}
+		SetDefaults_OtelConfig(obj)
+		if obj.Endpoint != "explicit:4317" {
+			t.Errorf("Endpoint = %q, want explicit config value", obj.Endpoint)
+		}
+	})
+}
