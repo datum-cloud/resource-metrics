@@ -25,12 +25,12 @@ discovery:
   projectKubeconfigPath: /etc/milo/kubeconfig
   collectRootControlPlane: true
 otel:
-  # test-infra's install-otel-collector task deploys an OpenTelemetryCollector
-  # CR named `otel-collector` in namespace `otel-collector-system`. The OTel
-  # Operator renders a Service named `<cr-name>-collector` for the otlp
-  # receivers. The gRPC receiver listens on port 4317 per the CR config
-  # (receivers.otlp.protocols.grpc.endpoint).
-  endpoint: otel-collector-collector.otel-collector-system:4317
+  # endpoint is intentionally left unset so it can be overridden per consumer
+  # via the OTEL_EXPORTER_OTLP_ENDPOINT env var (see SetDefaults_OtelConfig).
+  # When neither is set it defaults to this repo's own test-infra collector,
+  # otel-collector-collector.otel-collector-system:4317 (the OTel Operator
+  # renders `<cr-name>-collector` for the `otel-collector` CR). Consumers whose
+  # collector lives elsewhere set the env var in a Deployment patch.
   insecure: true
   collectionInterval: 5s
   defaultMetricPrefix: ""

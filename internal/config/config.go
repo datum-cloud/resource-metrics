@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -107,7 +108,16 @@ func SetDefaults_DiscoveryConfig(obj *DiscoveryConfig) {
 // SetDefaults_OtelConfig sets default values for OtelConfig.
 func SetDefaults_OtelConfig(obj *OtelConfig) {
 	if obj.Endpoint == "" {
-		obj.Endpoint = "otel-collector-collector.otel-collector-system:4317"
+		// Honor the standard OTLP endpoint env var so consumers can point the
+		// controller at their own collector (e.g. a differently-namespaced
+		// stack) without replacing the whole server-config ConfigMap. Falls
+		// back to the built-in default when neither is set. Value is host:port,
+		// matching otlpmetricgrpc.WithEndpoint (see internal/otel/provider.go).
+		if ep := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); ep != "" {
+			obj.Endpoint = ep
+		} else {
+			obj.Endpoint = "otel-collector-collector.otel-collector-system:4317"
+		}
 	}
 	if obj.CollectionInterval.Duration == 0 {
 		obj.CollectionInterval = metav1.Duration{Duration: 30 * time.Second}
